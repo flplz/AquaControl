@@ -222,7 +222,7 @@ Para dúvidas ou problemas:
 
 ## 📄 Licença
 
-Projeto desenvolvido para feira de ciências - 2024
+Projeto desenvolvido para feira de ciências - 2025
 
 ---
 
