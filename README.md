@@ -1,4 +1,5 @@
 # AquaControl
+<<<<<<< HEAD
 
 Sistema de controle de aquário desenvolvido para monitoramento e automação.
 
@@ -24,3 +25,5 @@ Em desenvolvimento...
 ## Contribuição
 
 Em desenvolvimento... 
+=======
+>>>>>>> 635a9378bb688d2ae85e1bb2148f3470060675cc
