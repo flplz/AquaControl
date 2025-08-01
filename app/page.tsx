@@ -606,6 +606,9 @@ function Screen3({
 
 // Componente Tela 4 - Consumo por Cômodo
 function Screen4() {
+  const [selectedRoom, setSelectedRoom] = useState<string | null>(null)
+  const [hoveredRoom, setHoveredRoom] = useState<string | null>(null)
+  
   const roomData = [
     {
       name: 'Banheiro',
@@ -699,11 +702,12 @@ function Screen4() {
           </div>
         </div>
 
-                 {/* Gráfico de Pizza Melhorado */}
+                 {/* Gráfico de Pizza Interativo */}
          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
            <h3 className="text-xl font-semibold text-gray-900 mb-4">Distribuição do Consumo</h3>
            <div className="relative w-48 h-48 sm:w-64 sm:h-64 mx-auto">
-             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+             <svg className="w-full h-full" viewBox="0 0 100 100">
+               {/* Círculo de fundo */}
                <circle
                  cx="50"
                  cy="50"
@@ -712,41 +716,72 @@ function Screen4() {
                  stroke="#e5e7eb"
                  strokeWidth="8"
                />
+               
+               {/* Fatias do gráfico */}
                {roomData.map((room, index) => {
-                 const circumference = 2 * Math.PI * 40
-                 const strokeDasharray = (room.percentage / 100) * circumference
-                 const strokeDashoffset = roomData
+                 // Calcular ângulos para cada fatia
+                 const totalPercentage = roomData.reduce((sum, r) => sum + r.percentage, 0)
+                 const startAngle = roomData
                    .slice(0, index)
-                   .reduce((acc, r) => acc + (r.percentage / 100) * circumference, 0)
+                   .reduce((sum, r) => sum + (r.percentage / totalPercentage) * 360, 0)
+                 const endAngle = startAngle + (room.percentage / totalPercentage) * 360
                  
-                 const strokeColor = room.color === 'bg-blue-500' ? '#3b82f6' :
-                                   room.color === 'bg-green-500' ? '#10b981' :
-                                   room.color === 'bg-yellow-500' ? '#f59e0b' :
-                                   room.color === 'bg-purple-500' ? '#8b5cf6' : '#3b82f6'
+                 // Converter ângulos para coordenadas SVG
+                 const startRad = (startAngle - 90) * Math.PI / 180
+                 const endRad = (endAngle - 90) * Math.PI / 180
+                 
+                 const x1 = 50 + 40 * Math.cos(startRad)
+                 const y1 = 50 + 40 * Math.sin(startRad)
+                 const x2 = 50 + 40 * Math.cos(endRad)
+                 const y2 = 50 + 40 * Math.sin(endRad)
+                 
+                 // Determinar se a fatia é maior que 180 graus
+                 const largeArcFlag = endAngle - startAngle > 180 ? 1 : 0
+                 
+                 // Criar o path da fatia
+                 const pathData = [
+                   `M 50 50`,
+                   `L ${x1} ${y1}`,
+                   `A 40 40 0 ${largeArcFlag} 1 ${x2} ${y2}`,
+                   `Z`
+                 ].join(' ')
+                 
+                 // Cores correspondentes
+                 const fillColor = room.color === 'bg-blue-500' ? '#3b82f6' :
+                                  room.color === 'bg-green-500' ? '#10b981' :
+                                  room.color === 'bg-yellow-500' ? '#f59e0b' :
+                                  room.color === 'bg-purple-500' ? '#8b5cf6' : '#3b82f6'
+                 
+                 const isSelected = selectedRoom === room.name
+                 const isHovered = hoveredRoom === room.name
+                 const opacity = selectedRoom && !isSelected ? 0.3 : 1
+                 const strokeWidth = isSelected || isHovered ? 2 : 0
+                 const strokeColor = '#ffffff'
                  
                  return (
-                   <motion.circle
+                   <motion.path
                      key={room.name}
-                     cx="50"
-                     cy="50"
-                     r="40"
-                     fill="none"
+                     d={pathData}
+                     fill={fillColor}
                      stroke={strokeColor}
-                     strokeWidth="8"
-                     strokeDasharray={strokeDasharray}
-                     strokeDashoffset={-strokeDashoffset}
-                     initial={{ strokeDasharray: 0, strokeDashoffset: 0 }}
+                     strokeWidth={strokeWidth}
+                     initial={{ opacity: 0, scale: 0 }}
                      animate={{ 
-                       strokeDasharray: strokeDasharray,
-                       strokeDashoffset: -strokeDashoffset
+                       opacity: opacity,
+                       scale: 1
                      }}
                      transition={{ 
                        duration: 1.5, 
                        delay: index * 0.2,
                        ease: "easeOut"
                      }}
-                     className="hover:stroke-width-10 cursor-pointer transition-all duration-300"
-                     style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}
+                     className="cursor-pointer transition-all duration-300"
+                     style={{ 
+                       filter: isSelected ? 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
+                     }}
+                     onMouseEnter={() => setHoveredRoom(room.name)}
+                     onMouseLeave={() => setHoveredRoom(null)}
+                     onClick={() => setSelectedRoom(selectedRoom === room.name ? null : room.name)}
                    />
                  )
                })}
@@ -758,36 +793,74 @@ function Screen4() {
                  animate={{ scale: 1, opacity: 1 }}
                  transition={{ delay: 1, duration: 0.5 }}
                >
-                 <div className="text-3xl font-bold text-gray-900">550L</div>
-                 <div className="text-sm text-gray-600">Total</div>
+                 {selectedRoom ? (
+                   <div>
+                     <div className="text-2xl font-bold text-gray-900">
+                       {roomData.find(r => r.name === selectedRoom)?.liters}L
+                     </div>
+                     <div className="text-sm text-gray-600">{selectedRoom}</div>
+                   </div>
+                 ) : (
+                   <div>
+                     <div className="text-3xl font-bold text-gray-900">550L</div>
+                     <div className="text-sm text-gray-600">Total</div>
+                   </div>
+                 )}
                </motion.div>
              </div>
            </div>
            
            {/* Legenda Interativa */}
            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
-             {roomData.map((room, index) => (
-               <motion.div
-                 key={room.name}
-                 className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                 initial={{ opacity: 0, x: -20 }}
-                 animate={{ opacity: 1, x: 0 }}
-                 transition={{ delay: 1.5 + index * 0.1 }}
-                 whileHover={{ scale: 1.05 }}
-               >
-                 <div 
-                   className="w-4 h-4 rounded-full"
-                   style={{ 
-                     backgroundColor: room.color === 'bg-blue-500' ? '#3b82f6' :
-                                   room.color === 'bg-green-500' ? '#10b981' :
-                                   room.color === 'bg-yellow-500' ? '#f59e0b' :
-                                   room.color === 'bg-purple-500' ? '#8b5cf6' : '#3b82f6'
-                   }}
-                 ></div>
-                 <span className="text-sm font-medium text-gray-700">{room.name}</span>
-                 <span className="text-sm text-gray-500">({room.percentage}%)</span>
-               </motion.div>
-             ))}
+             {roomData.map((room, index) => {
+               const isSelected = selectedRoom === room.name
+               const isHovered = hoveredRoom === room.name
+               
+               return (
+                 <motion.div
+                   key={room.name}
+                   className={`flex items-center space-x-2 p-3 rounded-lg cursor-pointer transition-all duration-300 ${
+                     isSelected 
+                       ? 'bg-blue-50 border-2 border-blue-200 shadow-md' 
+                       : isHovered 
+                       ? 'bg-gray-50 border border-gray-200' 
+                       : 'hover:bg-gray-50'
+                   }`}
+                   initial={{ opacity: 0, x: -20 }}
+                   animate={{ opacity: 1, x: 0 }}
+                   transition={{ delay: 1.5 + index * 0.1 }}
+                   whileHover={{ scale: 1.02 }}
+                   onMouseEnter={() => setHoveredRoom(room.name)}
+                   onMouseLeave={() => setHoveredRoom(null)}
+                   onClick={() => setSelectedRoom(selectedRoom === room.name ? null : room.name)}
+                 >
+                   <div 
+                     className={`w-4 h-4 rounded-full transition-all duration-300 ${
+                       isSelected ? 'ring-2 ring-blue-400 ring-offset-2' : ''
+                     }`}
+                     style={{ 
+                       backgroundColor: room.color === 'bg-blue-500' ? '#3b82f6' :
+                                     room.color === 'bg-green-500' ? '#10b981' :
+                                     room.color === 'bg-yellow-500' ? '#f59e0b' :
+                                     room.color === 'bg-purple-500' ? '#8b5cf6' : '#3b82f6'
+                     }}
+                   ></div>
+                   <span className={`text-sm font-medium transition-colors ${
+                     isSelected ? 'text-blue-900' : 'text-gray-700'
+                   }`}>{room.name}</span>
+                   <span className={`text-sm transition-colors ${
+                     isSelected ? 'text-blue-700' : 'text-gray-500'
+                   }`}>({room.percentage}%)</span>
+                 </motion.div>
+               )
+             })}
+           </div>
+           
+           {/* Instruções */}
+           <div className="mt-4 text-center">
+             <p className="text-xs text-gray-500">
+               💡 Clique na legenda ou no gráfico para destacar um cômodo
+             </p>
            </div>
          </div>
       </div>
